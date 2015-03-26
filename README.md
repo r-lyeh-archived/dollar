@@ -1,8 +1,8 @@
 # profit :hourglass_flowing_sand: <a href="https://travis-ci.org/r-lyeh/profit"><img src="https://api.travis-ci.org/r-lyeh/profit.svg?branch=master" align="right" /></a>
 
 - Profit is a generic CPU profiler (C++11)
-- Profit is cross-platform.
-- Profit is self-contained. No external dependencies.
+- Profit is cross-platform. No external dependencies.
+- Profit is tiny, self-contained, header-only.
 - Profit is BOOST licensed.
 
 ## Quick tutorial (tl;dr)
@@ -78,5 +78,5 @@ int main() {{_
 ```
 
 ## Licenses
-- [profit](https://github.com/r-lyeh/profit) by r-lyeh, BOOST licensed.
+- [profit](https://github.com/r-lyeh/profit), BOOST licensed.
 - profit is based on code by Steve Rabin and Richard "superpig" Fine.
