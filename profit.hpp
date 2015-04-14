@@ -193,8 +193,7 @@ class profit
 
             template <typename TPar>
             auto_table& operator<<(TPar const& input) {
-                if (column_widths.size() == 0)
-                    throw std::runtime_error("no columns defined!");
+                assert( column_widths.size() > 0 && "no columns defined!" );
 
                 if (rows.size() < 1) rows.push_back(row_t());
 
