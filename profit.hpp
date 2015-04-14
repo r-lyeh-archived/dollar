@@ -391,8 +391,8 @@ class profit
                 printer << buffer;
                 sprintf( buffer,   "%3d", hits );
                 printer << buffer;
-                sprintf( buffer, "%s%s", std::string(parentCount, ' ').c_str(), name.c_str() );
-                printer << buffer;
+                //sprintf( buffer, "%s%s", ... );
+                printer << ( std::string(parentCount, ' ') + name );
             };
 
             // auto total = ( rootEnd - rootBegin );
