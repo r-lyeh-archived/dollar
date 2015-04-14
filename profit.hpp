@@ -21,6 +21,10 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 #include <cassert>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <map>
+#include <numeric>
+#include <sstream>
 #include <string.h>
 
 #ifdef PROFIT_USE_OPENMP
@@ -46,6 +50,177 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 
 class profit
 {
+    private:
+
+        struct sum_values {
+            size_t operator()(size_t i, const std::pair<const size_t, size_t>& x) {
+                return i + x.second; 
+            }
+        };
+
+        struct endl {};
+
+        class auto_table {
+            std::stringstream my_stream;
+            typedef std::vector<std::string> row_t;
+            typedef std::vector<row_t> rows_t;
+            typedef std::map<size_t, size_t> column_widths_t;
+            column_widths_t column_widths;
+            rows_t rows;
+            size_t header_every_nth_row;
+            size_t horizontal_padding;
+
+        public:
+            auto_table() : header_every_nth_row(0), horizontal_padding(0) {}
+
+        private:
+            static size_t width(std::string const& s) { return s.length(); }
+
+            static size_t combine_width(size_t one_width, size_t another_width) {
+                return std::max(one_width, another_width);
+            }
+
+        private:
+            void print_horizontal_line(std::ostream& stream) {
+                stream << '+';
+                size_t sum = std::accumulate(column_widths.begin(), column_widths.end(), 0,
+                    sum_values());
+                for (size_t i = 0;
+                    i < sum + column_widths.size() +
+                    2 * column_widths.size() * horizontal_padding - 1;
+                    i++)
+                    stream << '-';
+                stream << "+\n";
+            }
+
+            std::string pad_column_left(std::string const& s, size_t column) {
+                size_t s_width = width(s);
+                size_t column_width = column_widths[column];
+                if (s_width > column_width) return s;
+
+                return std::string(column_width - s_width + horizontal_padding, ' ') + s +
+                std::string(horizontal_padding, ' ');
+            }
+
+            std::string pad_column_right(std::string const& s, size_t column) {
+                size_t s_width = width(s);
+                size_t column_width = column_widths[column];
+                if (s_width > column_width) return s;
+
+                return std::string(horizontal_padding, ' ') + s +
+                std::string(column_width - s_width + horizontal_padding, ' ');
+            }
+
+            std::string pad_column(std::string const& s, size_t column, bool right) {
+                if (right)
+                    return pad_column_right(s, column);
+                else
+                    return pad_column_left(s, column);
+            }
+
+            void print_row(size_t r, std::ostream& stream, int color = 7) {
+                size_t column_count = column_widths.size();
+                row_t const& row = rows[r];
+                size_t header_count = row.size();
+
+                for (size_t i = 0; i < header_count; i++) {
+                    stream << '|';
+                    stream << pad_column(row[i], i, i == column_count - 1);
+                }
+
+                for (size_t i = header_count; i < column_count; i++) {
+                    stream << '|';
+                    stream << pad_column("", i, i == column_count - 1);
+                }
+
+                stream << "|\n";
+            }
+
+            void print_header(std::ostream& stream) {
+                print_horizontal_line(stream);
+                if (rows.size() > 0) {
+                    print_row(0, stream, 10);
+                    print_horizontal_line(stream);
+                }
+            }
+
+            void print_rows(std::ostream& stream) {
+                size_t row_count = rows.size();
+
+                if (row_count == 0) return;
+
+                for (size_t row = 1; row < row_count - 1; row++) {
+                    if (row > 1 && header_every_nth_row &&
+                        (row - 1) % header_every_nth_row == 0)
+                        print_header(stream);
+
+                    print_row(row, stream, 15);
+                }
+
+                if (rows[row_count - 1].size() > 0) print_row(row_count - 1, stream, 15);
+            }
+
+            void print_footer(std::ostream& stream) {
+                print_horizontal_line(stream);
+            }
+
+        public:
+            auto_table& add_column(std::string const& name, size_t min_width = 0) {
+                size_t new_width = combine_width(width(name), min_width);
+                column_widths[column_widths.size()] = new_width;
+
+                if (rows.size() < 1) rows.push_back(row_t());
+
+                rows.front().push_back(name);
+                return *this;
+            }
+
+            auto_table& with_header_every_nth_row(size_t n) {
+                header_every_nth_row = n;
+                return *this;
+            }
+
+            auto_table& with_horizontal_padding(size_t n) {
+                horizontal_padding = n;
+                return *this;
+            }
+
+            auto_table& operator<<(endl const& input) {
+                rows.push_back(row_t());
+                return *this;
+            }
+
+            template <typename TPar>
+            auto_table& operator<<(TPar const& input) {
+                if (column_widths.size() == 0)
+                    throw std::runtime_error("no columns defined!");
+
+                if (rows.size() < 1) rows.push_back(row_t());
+
+                if (rows.back().size() >= column_widths.size()) rows.push_back(row_t());
+
+                my_stream << input;
+                std::string entry(my_stream.str());
+                size_t column = rows.back().size();
+                size_t new_width = combine_width(width(entry), column_widths[column]);
+                column_widths[column] = new_width;
+
+                rows.back().push_back(entry);
+
+                my_stream.str("");
+
+                return *this;
+            }
+
+            void print(std::ostream& stream) {
+                this->print_header(stream);
+                this->print_rows(stream);
+                this->print_footer(stream);
+            }
+
+            std::stringstream& get_stream() { return my_stream; }
+        };
+
     protected:
 
         struct local {
@@ -190,24 +365,36 @@ class profit
             if (!g.rootEnd)
             g.rootEnd = now();
 
+            auto_table printer;
+            printer
+                .add_column("min")
+                .add_column("avg")
+                .add_column("max")
+                .add_column("%")
+                .add_column("#")
+                .add_column("scope")
+                .with_horizontal_padding(1)
+            ;
+
             char buffer[256];
+
             auto Sample = [&]( float fMin, float fAvg, float fMax, float tAvg, int hits, const std::string &name, int parentCount ) {
-                char *ptr = buffer;
-
-                ptr += sprintf( ptr, "%5.2f | ", fMin );
-                ptr += sprintf( ptr, "%5.2f | ", fAvg );
-                ptr += sprintf( ptr, "%5.2f | ", fMax );
-                ptr += sprintf( ptr, "%5.2f | ", tAvg );
-                ptr += sprintf( ptr,   "%3d | ", hits );
-                ptr += sprintf( ptr, "%s%s", std::string(parentCount, ' ').c_str(), name.c_str() );
-
-                cout << buffer << std::endl;
+                //todo: use <iomanip>
+                sprintf( buffer, "%5.2f", fMin );
+                printer << buffer;
+                sprintf( buffer, "%5.2f", fAvg );
+                printer << buffer;
+                sprintf( buffer, "%5.2f", fMax );
+                printer << buffer;
+                sprintf( buffer, "%5.2f", tAvg );
+                printer << buffer;
+                sprintf( buffer,   "%3d", hits );
+                printer << buffer;
+                sprintf( buffer, "%s%s", std::string(parentCount, ' ').c_str(), name.c_str() );
+                printer << buffer;
             };
 
             // auto total = ( rootEnd - rootBegin );
-            cout << "------+-------+-------+-------+-----+-------------" << std::endl;
-            cout << "  min |   avg |   max |     % |   # | scope" << std::endl;
-            cout << "------+-------+-------+-------+-----+-------------" << std::endl;
 
             for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
                 if( g.samples[i].bIsValid ) {
@@ -238,7 +425,7 @@ class profit
                 }
             }
 
-            cout << std::endl;
+            printer.print(std::cout);
         }
     }
 
