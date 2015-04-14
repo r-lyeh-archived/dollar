@@ -53,12 +53,6 @@ class profit
 {
     private:
 
-        struct sum_values {
-            size_t operator()(size_t i, const std::pair<const size_t, size_t>& x) {
-                return i + x.second; 
-            }
-        };
-
         class auto_table {
             std::stringstream my_stream;
             typedef std::vector<std::string> row_t;
@@ -73,9 +67,9 @@ class profit
             auto_table() : header_every_nth_row(0), horizontal_padding(0) {}
 
         private:
-            static size_t width(std::string const& s) { return s.length(); }
+            size_t width(std::string const& s) { return s.length(); }
 
-            static size_t combine_width(size_t one_width, size_t another_width) {
+            size_t combine_width(size_t one_width, size_t another_width) {
                 return std::max(one_width, another_width);
             }
 
@@ -83,7 +77,9 @@ class profit
             void print_horizontal_line(std::ostream& stream) {
                 stream << '+';
                 size_t sum = std::accumulate(column_widths.begin(), column_widths.end(), 0,
-                    sum_values());
+                    [] (size_t i, const std::pair<const size_t, size_t>& x) {
+                        return i + x.second; 
+                    } );
                 for (size_t i = 0;
                     i < sum + column_widths.size() +
                     2 * column_widths.size() * horizontal_padding - 1;
@@ -230,18 +226,18 @@ class profit
             float rootEnd = 0.0f;
             bool bProfilerIsRunning = true;
 
-            struct profileSample
+            struct sample
             {
                 bool bIsValid = false;          // whether or not this sample is valid (for use with fixed-size arrays)
-                bool bIsOpen;                   // is this sample currently being profiled?
-                unsigned int hits;              // number of times this sample has been profiled this frame
+                bool bIsOpen = 0;               // is this sample currently being profiled?
+                unsigned int hits = 0;          // number of times this sample has been profiled this frame
                 std::string name;               // name of the sample
 
-                float startTime;                // starting time on the clock, in seconds
-                float totalTicks;               // total time recorded across all profiles of this sample
-                float childTime;                // total time taken by children of this sample
+                float startTime = 0;            // starting time on the clock, in seconds
+                float totalTicks = 0;           // total time recorded across all profiles of this sample
+                float childTime = 0;            // total time taken by children of this sample
 
-                int parentCount;                // number of parents this sample has (useful for indenting)
+                int parentCount = 0;            // number of parents this sample has (useful for indenting)
 
                 float averagePc = -1;           // average percentage of game loop time taken up
                 float minPc = -1;               // minimum percentage of game loop time taken up
@@ -250,9 +246,19 @@ class profit
 
                 void reset() {
                     bool b = bIsOpen;
-                    *this = profileSample();
+                    *this = sample();
                     bIsOpen = b;
                 }
+
+                static float now() {
+#ifdef PROFIT_USE_OPENMP
+                    return float( omp_get_wtime() );
+#else
+                    static auto epoch = std::chrono::steady_clock::now();
+                    return float( std::chrono::duration_cast< std::chrono::milliseconds >( std::chrono::steady_clock::now() - epoch ).count() / 1000.0 );
+#endif
+                }
+
             } samples[ PROFIT_MAX_SAMPLES ];
         };
 
@@ -265,19 +271,10 @@ class profit
         int iSampleIndex;
         int iParentIndex;
 
-        static float now() {
-#ifdef PROFIT_USE_OPENMP
-            return float( omp_get_wtime() );
-#else
-            static auto epoch = std::chrono::steady_clock::now();
-            return float( std::chrono::duration_cast< std::chrono::milliseconds >( std::chrono::steady_clock::now() - epoch ).count() / 1000.0 );
-#endif
-        }
-
   public:
 
     profit( const std::string &sampleName ) {
-        auto &g = get();
+        local &g = get();
 
         if( !g.bProfilerIsRunning ) {
             return;
@@ -304,7 +301,7 @@ class profit
                     g.samples[i].parentCount = g.openSampleCount++;
                     g.samples[i].bIsOpen = true;
                     ++g.samples[i].hits;
-                    g.samples[i].startTime = now();
+                    g.samples[i].startTime = local::sample::now();
                     //if this has no parent, it must be the 'main loop' sample, so do the global timer
                     if( iParentIndex < 0 ) {
                         g.rootBegin = g.samples[i].startTime;
@@ -326,7 +323,7 @@ class profit
         g.samples[storeIndex].hits = 1;
         g.samples[storeIndex].name = sampleName;
 
-        g.samples[storeIndex].startTime = now();
+        g.samples[storeIndex].startTime = local::sample::now();
         g.samples[storeIndex].totalTicks = 0.0f;
         g.samples[storeIndex].childTime = 0.0f;
 
@@ -338,9 +335,9 @@ class profit
     }
 
     ~profit() {
-        auto &g = get();
+        local &g = get();
         if( g.bProfilerIsRunning ) {
-            float fEndTime = now();
+            float fEndTime = local::sample::now();
 
             //phew... ok, we're done timing
             g.samples[iSampleIndex].bIsOpen = false;
@@ -360,10 +357,10 @@ class profit
     }
 
     static void report( std::ostream &cout ) {
-        auto &g = get();
+        local &g = get();
         if( g.bProfilerIsRunning ) {
             if (!g.rootEnd)
-            g.rootEnd = now();
+            g.rootEnd = local::sample::now();
 
             auto_table printer;
             printer
@@ -430,7 +427,7 @@ class profit
     }
 
     static void pause( bool paused ) {
-        auto &g = get();
+        local &g = get();
         g.bProfilerIsRunning = (paused ? false : true);
     }
 
@@ -439,7 +436,7 @@ class profit
     }
 
     static void reset( const std::string &strName ) {
-        auto &g = get();
+        local &g = get();
         for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
             if( g.samples[i].bIsValid && g.samples[i].name == strName ) {
                 //found it
@@ -454,15 +451,14 @@ class profit
     }
 
     static void reset_all() {
-        auto &g = get();
+        local &g = get();
         for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
             if( g.samples[i].bIsValid ) g.samples[i].reset();
         }
     }
 
-    template<typename ostream>
-    inline friend ostream& operator<<( ostream &os, const profit &self ) {
-        return self.report( os ), os;
+    std::ostream& operator<<( std::ostream &os ) {
+        return report( os ), os;
     }
 };
 
