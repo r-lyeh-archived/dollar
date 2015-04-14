@@ -23,7 +23,7 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 - Or you could just use the predefined `_` macro, which adds function name, line and number to the raii object name.
 - Use `profit::report(ostream)` to log report to any ostream object (like `std::cout`).
 - Optionally, `profit::reset(name)` or `profit::reset_all()` to reset counters.
-- Profit is enabled by default. Compile with `/D_` to disable it.
+- Profit is enabled by default. Compile with `-D_=` to disable it.
 
 ## Todos
 - json, csv, tsv, std::vector<float> (graph? opengl?)
@@ -75,6 +75,9 @@ int main() {{_
 |  0.00 |  0.00 |  0.00 |  0.00 |  45 |      c(sample.cc:6)  |
 | 68.57 | 68.57 | 68.57 | 68.57 | 120 |       c(sample.cc:8) |
 +------------------------------------------------------------+
+
+~/profit> g++ sample.cc -std=c++11 -D_= && ./a.out
+~/profit>
 ```
 
 ## Licenses

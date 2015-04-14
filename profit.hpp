@@ -462,4 +462,18 @@ class profit
     }
 };
 
+#else
+
+class profit {
+public:
+
+    static void report( std::ostream &cout ) {}
+    static void pause( bool paused ) {}
+    static bool paused() {}
+    static void reset( const std::string &name ) {}
+    static void reset_all() {}
+
+    std::ostream& operator<<( std::ostream &os ) { return os; }    
+};
+
 #endif
