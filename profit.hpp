@@ -224,30 +224,35 @@ class profit
             int openSampleCount = 0;
             float rootBegin = 0.0f;
             float rootEnd = 0.0f;
-            bool bProfilerIsRunning = true;
+            bool running = true;
 
             struct sample
             {
-                bool bIsValid = false;          // whether or not this sample is valid (for use with fixed-size arrays)
-                bool bIsOpen = 0;               // is this sample currently being profiled?
-                unsigned int hits = 0;          // number of times this sample has been profiled this frame
+                bool valid = false;             // whether or not this sample is valid (for use with fixed-size arrays)
+                bool open = false;              // is this sample currently being profiled?
+                unsigned hits = 0;              // number of times this sample has been profiled this frame
                 std::string name;               // name of the sample
 
-                float startTime = 0;            // starting time on the clock, in seconds
-                float totalTicks = 0;           // total time recorded across all profiles of this sample
-                float childTime = 0;            // total time taken by children of this sample
+                float epoch = 0;                // starting time on the clock, in seconds
+                float total = 0;                // total time recorded across all profiles of this sample
+                float child = 0;                // total time taken by children of this sample
 
-                int parentCount = 0;            // number of parents this sample has (useful for indenting)
+                unsigned parents = 0;           // number of parents this sample has (useful for indenting)
 
-                float averagePc = -1;           // average percentage of game loop time taken up
-                float minPc = -1;               // minimum percentage of game loop time taken up
-                float maxPc = -1;               // maximum percentage of game loop time taken up
-                unsigned long dataCount = 0;    // number of percentage values that have been stored
+                float avg_pc = -1;              // average percentage of game loop time taken up
+                float min_pc = -1;              // minimum percentage of game loop time taken up
+                float max_pc = -1;              // maximum percentage of game loop time taken up
+                unsigned datas = 0;             // number of percentage values that have been stored
 
                 void reset() {
-                    bool b = bIsOpen;
+                    bool b = open;
                     *this = sample();
-                    bIsOpen = b;
+                    open = b;
+                }
+
+                void reset_pcs() {
+                    max_pc = min_pc = avg_pc = -1;
+                    datas = 0;
                 }
 
                 static float now() {
@@ -276,7 +281,7 @@ class profit
     profit( const std::string &sampleName ) {
         local &g = get();
 
-        if( !g.bProfilerIsRunning ) {
+        if( !g.running ) {
             return;
         }
 
@@ -284,7 +289,7 @@ class profit
         int i = 0;
         int storeIndex = -1;
         for( i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
-            if ( !g.samples[i].bIsValid ) {
+            if ( !g.samples[i].valid ) {
                 if( storeIndex < 0 ) {
                     storeIndex = i;
                 }
@@ -292,19 +297,19 @@ class profit
                 if( g.samples[i].name == sampleName ) {
                     //this is the sample we want
                     //check that it's not already open
-                    assert( !g.samples[i].bIsOpen && "Tried to profile a sample which was already being profiled" );
+                    assert( !g.samples[i].open && "Tried to profile a sample which was already being profiled" );
                     //first, store it's index
                     iSampleIndex = i;
                     //the parent sample is the last opened sample
                     iParentIndex = g.lastOpenedSample;
                     g.lastOpenedSample = i;
-                    g.samples[i].parentCount = g.openSampleCount++;
-                    g.samples[i].bIsOpen = true;
+                    g.samples[i].parents = g.openSampleCount++;
+                    g.samples[i].open = true;
                     ++g.samples[i].hits;
-                    g.samples[i].startTime = local::sample::now();
+                    g.samples[i].epoch = local::sample::now();
                     //if this has no parent, it must be the 'main loop' sample, so do the global timer
                     if( iParentIndex < 0 ) {
-                        g.rootBegin = g.samples[i].startTime;
+                        g.rootBegin = g.samples[i].epoch;
                     }
                     return;
                 }
@@ -318,39 +323,39 @@ class profit
         iParentIndex = g.lastOpenedSample;
         g.lastOpenedSample = storeIndex;
 
-        g.samples[storeIndex].bIsValid = true;
-        g.samples[storeIndex].bIsOpen = true;
+        g.samples[storeIndex].valid = true;
+        g.samples[storeIndex].open = true;
         g.samples[storeIndex].hits = 1;
         g.samples[storeIndex].name = sampleName;
 
-        g.samples[storeIndex].startTime = local::sample::now();
-        g.samples[storeIndex].totalTicks = 0.0f;
-        g.samples[storeIndex].childTime = 0.0f;
+        g.samples[storeIndex].epoch = local::sample::now();
+        g.samples[storeIndex].total = 0.0f;
+        g.samples[storeIndex].child = 0.0f;
 
-        g.samples[i].parentCount = g.openSampleCount++;
+        g.samples[i].parents = g.openSampleCount++;
 
         if( iParentIndex < 0 ) {
-            g.rootBegin = g.samples[storeIndex].startTime;
+            g.rootBegin = g.samples[storeIndex].epoch;
         }
     }
 
     ~profit() {
         local &g = get();
-        if( g.bProfilerIsRunning ) {
+        if( g.running ) {
             float fEndTime = local::sample::now();
 
             //phew... ok, we're done timing
-            g.samples[iSampleIndex].bIsOpen = false;
+            g.samples[iSampleIndex].open = false;
             //calculate the time taken this profile, for ease of use later on
-            float fTimeTaken = fEndTime - g.samples[iSampleIndex].startTime;
+            float fTimeTaken = fEndTime - g.samples[iSampleIndex].epoch;
 
             if( iParentIndex >= 0 ) {
-                g.samples[iParentIndex].childTime += fTimeTaken;
+                g.samples[iParentIndex].child += fTimeTaken;
             } else {
                 //no parent, so this is the end of the main loop sample
                 g.rootEnd = fEndTime;
             }
-            g.samples[iSampleIndex].totalTicks += fTimeTaken;
+            g.samples[iSampleIndex].total += fTimeTaken;
             g.lastOpenedSample = iParentIndex;
             --g.openSampleCount;
         }
@@ -358,7 +363,7 @@ class profit
 
     static void report( std::ostream &cout ) {
         local &g = get();
-        if( g.bProfilerIsRunning ) {
+        if( g.running ) {
             if (!g.rootEnd)
             g.rootEnd = local::sample::now();
 
@@ -375,7 +380,7 @@ class profit
 
             char buffer[256];
 
-            auto Sample = [&]( float fMin, float fAvg, float fMax, float tAvg, int hits, const std::string &name, int parentCount ) {
+            auto Sample = [&]( float fMin, float fAvg, float fMax, float tAvg, int hits, const std::string &name, int parents ) {
                 //todo: use <iomanip>
                 sprintf( buffer, "%5.2f", fMin );
                 printer << buffer;
@@ -388,37 +393,37 @@ class profit
                 sprintf( buffer,   "%3d", hits );
                 printer << buffer;
                 //sprintf( buffer, "%s%s", ... );
-                printer << ( std::string(parentCount, ' ') + name );
+                printer << ( std::string(parents, ' ') + name );
             };
 
             // auto total = ( rootEnd - rootBegin );
 
             for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
-                if( g.samples[i].bIsValid ) {
+                if( g.samples[i].valid ) {
                     float sampleTime, percentage;
                     //calculate the time spend on the sample itself (excluding children)
-                    sampleTime = g.samples[i].totalTicks - g.samples[i].childTime;
+                    sampleTime = g.samples[i].total - g.samples[i].child;
                     percentage = ( sampleTime / ( g.rootEnd - g.rootBegin ) ) * 100.0f;
 
                     //add it to the sample's values
                     float totalPc;
-                    totalPc = g.samples[i].averagePc * g.samples[i].dataCount;
-                    totalPc += percentage; g.samples[i].dataCount++;
-                    g.samples[i].averagePc = totalPc / g.samples[i].dataCount;
-                    if( g.samples[i].minPc < 0 || percentage < g.samples[i].minPc ) {
-                        g.samples[i].minPc = percentage;
+                    totalPc = g.samples[i].avg_pc * g.samples[i].datas;
+                    totalPc += percentage; g.samples[i].datas++;
+                    g.samples[i].avg_pc = totalPc / g.samples[i].datas;
+                    if( g.samples[i].min_pc < 0 || percentage < g.samples[i].min_pc ) {
+                        g.samples[i].min_pc = percentage;
                     }
-                    if( g.samples[i].maxPc < 0 || percentage > g.samples[i].maxPc ) {
-                        g.samples[i].maxPc = percentage;
+                    if( g.samples[i].max_pc < 0 || percentage > g.samples[i].max_pc ) {
+                        g.samples[i].max_pc = percentage;
                     }
 
                     //output these values
-                    Sample( g.samples[i].minPc, g.samples[i].averagePc, g.samples[i].maxPc, percentage, g.samples[i].hits, g.samples[i].name, g.samples[i].parentCount );
+                    Sample( g.samples[i].min_pc, g.samples[i].avg_pc, g.samples[i].max_pc, percentage, g.samples[i].hits, g.samples[i].name, g.samples[i].parents );
 
                     //reset the sample for next time
                     g.samples[i].hits = 0;
-                    g.samples[i].totalTicks = 0;
-                    g.samples[i].childTime = 0;
+                    g.samples[i].total = 0;
+                    g.samples[i].child = 0;
                 }
             }
 
@@ -428,23 +433,19 @@ class profit
 
     static void pause( bool paused ) {
         local &g = get();
-        g.bProfilerIsRunning = (paused ? false : true);
+        g.running = (paused ? false : true);
     }
 
     static bool paused() {
-        return get().bProfilerIsRunning ? false : true;
+        return get().running ? false : true;
     }
 
     static void reset( const std::string &strName ) {
         local &g = get();
         for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
-            if( g.samples[i].bIsValid && g.samples[i].name == strName ) {
-                //found it
-                //reset avg/min/max ONLY
-                //because the sample may be running
-                g.samples[i].maxPc = g.samples[i].minPc = -1;
-                g.samples[i].averagePc = -1;
-                g.samples[i].dataCount = 0;
+            if( g.samples[i].valid && g.samples[i].name == strName ) {
+                //found it; reset avg/min/max ONLY because the sample may be running
+                g.samples[i].reset_pcs();
                 return;
             }
         }
@@ -453,7 +454,7 @@ class profit
     static void reset_all() {
         local &g = get();
         for( int i = 0; i < PROFIT_MAX_SAMPLES; ++i ) {
-            if( g.samples[i].bIsValid ) g.samples[i].reset();
+            if( g.samples[i].valid ) g.samples[i].reset();
         }
     }
 
