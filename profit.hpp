@@ -19,14 +19,14 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 #pragma once
 
 #include <cassert>
-#include <string>
+#include <string.h>
+#include <algorithm>
 #include <iostream>
-#include <vector>
 #include <map>
 #include <numeric>
 #include <sstream>
-#include <string.h>
-#include <algorithm>
+#include <string>
+#include <vector>
 
 #ifdef PROFIT_USE_OPENMP
 #include <omp.h>
@@ -58,8 +58,6 @@ class profit
                 return i + x.second; 
             }
         };
-
-        struct endl {};
 
         class auto_table {
             std::stringstream my_stream;
@@ -186,11 +184,6 @@ class profit
                 return *this;
             }
 
-            auto_table& operator<<(endl const& input) {
-                rows.push_back(row_t());
-                return *this;
-            }
-
             template <typename TPar>
             auto_table& operator<<(TPar const& input) {
                 assert( column_widths.size() > 0 && "no columns defined!" );
@@ -209,6 +202,13 @@ class profit
 
                 my_stream.str("");
 
+                return *this;
+            }
+
+            auto_table& operator<<(std::ostream &( *endl )(std::ostream &)) {
+                if( *endl == static_cast<std::ostream &( * )(std::ostream&)>( std::endl ) ) {
+                    rows.push_back(row_t());
+                }
                 return *this;
             }
 
