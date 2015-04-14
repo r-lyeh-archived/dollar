@@ -26,6 +26,7 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 #include <numeric>
 #include <sstream>
 #include <string.h>
+#include <algorithm>
 
 #ifdef PROFIT_USE_OPENMP
 #include <omp.h>
