@@ -3,7 +3,7 @@
 - Profit is a generic CPU profiler (C++11)
 - Profit is cross-platform. No external dependencies.
 - Profit is tiny, self-contained, header-only.
-- Profit is BOOST licensed.
+- Profit is zlib/libpng licensed.
 
 ## Quick tutorial (tl;dr)
 ```c++
@@ -81,5 +81,5 @@ int main() {{_
 ```
 
 ## Licenses
-- [profit](https://github.com/r-lyeh/profit), BOOST licensed.
+- [profit](https://github.com/r-lyeh/profit), zlib/libpng licensed.
 - profit is based on code by Steve Rabin and Richard "superpig" Fine.

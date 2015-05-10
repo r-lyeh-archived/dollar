@@ -1,4 +1,4 @@
-// simple c++11 profiler, header-only, boost licensed. based on code by Steve Rabin and Richard "superpig" Fine.
+// simple c++11 profiler, header-only, zlib/libpng licensed. based on code by Steve Rabin and Richard "superpig" Fine.
 // - rlyeh
 
 /* usage:
