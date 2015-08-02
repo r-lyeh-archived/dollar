@@ -1,22 +1,23 @@
-// simple c++11 profiler, header-only, zlib/libpng licensed. based on code by Steve Rabin and Richard "superpig" Fine.
+// Profit is a simple c++11 profiler, header-only and zlib/libpng licensed.
+// Based on code by Steve Rabin and Richard "superpig" Fine.
 // - rlyeh
 
-/* usage:
-
+/** usage:
 #include "profit.hpp"
-int main() {_  // <-- put an underscore after every block scope you want to measure
-    for( int x = 0; x < 10000000; ++x ) {_  // <--
+int main() { $ // <-- put a dollar after every curly brace to determinate cpu cost of the scope
+    for( int x = 0; x < 10000000; ++x ) { $ // <-- functions or loops will apply too
         // slow stuff...
     }
-    profit::report(std::cout); // report stats to std::cout;
+    profit::report(std::cout); // report stats to std::cout
     profit::reset();           // reset current scope
     profit::reset_all();       // reset all scopes (like when entering a new frame)
-}
+} **/
 
-*/
-
-#ifndef _
+#ifndef $
 #pragma once
+
+#define PROFIT_VERSION "1.0.0" /* (2015/08/02) Macro renamed
+#define PROFIT_VERSION "0.0.0" // (2015/03/13) Initial commit */
 
 #include <cassert>
 #include <string.h>
@@ -43,10 +44,10 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 
 #ifdef _MSC_VER
 #define PROFIT(name)  profit _profit(name);
-#define _             profit _profit(std::string(__FUNCTION__) + "(" __FILE__ ":" PROFIT_TOSTRING(__LINE__) ")" );
+#define $             profit _profit(std::string(__FUNCTION__) + "(" __FILE__ ":" PROFIT_TOSTRING(__LINE__) ")" );
 #else
 #define PROFIT(name)  profit _profit(name);
-#define _             profit _profit(std::string(__PRETTY_FUNCTION__) + "(" __FILE__ ":" PROFIT_TOSTRING(__LINE__) ")" );
+#define $             profit _profit(std::string(__PRETTY_FUNCTION__) + "(" __FILE__ ":" PROFIT_TOSTRING(__LINE__) ")" );
 #endif
 
 class profit
@@ -78,7 +79,7 @@ class profit
                 stream << '+';
                 size_t sum = std::accumulate(column_widths.begin(), column_widths.end(), 0,
                     [] (size_t i, const std::pair<const size_t, size_t>& x) {
-                        return i + x.second; 
+                        return i + x.second;
                     } );
                 for (size_t i = 0;
                     i < sum + column_widths.size() +
@@ -474,7 +475,7 @@ public:
     static void reset( const std::string &name ) {}
     static void reset_all() {}
 
-    std::ostream& operator<<( std::ostream &os ) { return os; }    
+    std::ostream& operator<<( std::ostream &os ) { return os; }
 };
 
 #endif

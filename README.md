@@ -1,4 +1,4 @@
-# profit :hourglass_flowing_sand: <a href="https://travis-ci.org/r-lyeh/profit"><img src="https://api.travis-ci.org/r-lyeh/profit.svg?branch=master" align="right" /></a>
+# Profit :moneybag: <a href="https://travis-ci.org/r-lyeh/profit"><img src="https://api.travis-ci.org/r-lyeh/profit.svg?branch=master" align="right" /></a>
 
 - Profit is a generic CPU profiler (C++11)
 - Profit is cross-platform. No external dependencies.
@@ -8,24 +8,29 @@
 ## Quick tutorial (tl;dr)
 ```c++
 #include "profit.hpp"
-int main() {_  // <-- put an underscore after every block scope you want to measure
-    for( int x = 0; x < 10000000; ++x ) {_  // <--
+int main() { $ // <-- put a dollar after every curly brace to determinate cpu cost of the scope
+    for( int x = 0; x < 10000000; ++x ) { $ // <-- functions or loops will apply too
         // slow stuff...
     }
-    profit::report(std::cout); // report stats to std::cout;
+    profit::report(std::cout); // report stats to std::cout
     profit::reset();           // reset current scope
     profit::reset_all();       // reset all scopes (like when entering a new frame)
 }
 ```
 
 ## API
-- For each scope you want to measure, insert an `profit raii("name")` object.
-- Or you could just use the predefined `_` macro, which adds function name, line and number to the raii object name.
+- Determinate cpu cost of any scope by putting a `$` dollar sign in front of it.
+- Or just insert an `profit raii("name")` object.
+- The predefined `$` macro just adds function name, line and number to the raii object name.
 - Use `profit::report(ostream)` to log report to any ostream object (like `std::cout`).
 - Optionally, `profit::reset(name)` or `profit::reset_all()` to reset counters.
-- Profit is enabled by default. Compile with `-D_=` to disable it.
 
-## Todos
+## Build options
+- Profit is enabled by default. Compile with `-D$=` to disable it.
+- Define PROFIT_USE_OPENMP to use OpenMP timers (instead of <chrono>)
+- Define PROFIT_MAX_SAMPLES to change number of maximum instrumented samples.
+
+## Todo
 - json, csv, tsv, std::vector<float> (graph? opengl?)
 - name %d
 
@@ -38,26 +43,26 @@ int main() {_  // <-- put an underscore after every block scope you want to meas
 #include <thread>
 #include "profit.hpp"
 
-void c( int x ) {_
+void c( int x ) { $
 #   define sleep(secs) std::this_thread::sleep_for( std::chrono::microseconds( int(secs * 1000000) ) )
-    while( x-- > 0 ) {_
+    while( x-- > 0 ) { $
         sleep(0.0125);
     }
 }
-void b( int x ) {_
-    while( x-- > 0 ) {_
+void b( int x ) { $
+    while( x-- > 0 ) { $
         sleep(0.0125);
         c(x);
     }
 }
-void a( int x ) {_
-    while( x-- > 0 ) {_
+void a( int x ) { $
+    while( x-- > 0 ) { $
         sleep(0.0125);
         b(x);
     }
 }
 
-int main() {{_
+int main() {{ $
         a(10);
     }
     profit::report( std::cout );
@@ -80,6 +85,12 @@ int main() {{_
 ~/profit>
 ```
 
+## Changelog
+- v1.0.0 (2015/08/02)
+  - Macro renamed
+- v0.0.0 (2015/03/13)
+  - Initial commit
+
 ## Licenses
-- [profit](https://github.com/r-lyeh/profit), zlib/libpng licensed.
-- profit is based on code by Steve Rabin and Richard "superpig" Fine.
+- [Profit](https://github.com/r-lyeh/profit), zlib/libpng licensed.
+- Profit is based on code by Steve Rabin and Richard "superpig" Fine.

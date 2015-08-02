@@ -3,26 +3,26 @@
 #include <thread>
 #include "profit.hpp"
 
-void c( int x ) {_
+void c( int x ) { $
 #   define sleep(secs) std::this_thread::sleep_for( std::chrono::microseconds( int(secs * 1000000) ) )
-    while( x-- > 0 ) {_
+    while( x-- > 0 ) { $
         sleep(0.0125);
     }
 }
-void b( int x ) {_
-    while( x-- > 0 ) {_
+void b( int x ) { $
+    while( x-- > 0 ) { $
         sleep(0.0125);
         c(x);
     }
 }
-void a( int x ) {_
-    while( x-- > 0 ) {_
+void a( int x ) { $
+    while( x-- > 0 ) { $
         sleep(0.0125);
         b(x);
     }
 }
 
-int main() {{_
+int main() {{ $
         a(10);
     }
     profit::report( std::cout );
