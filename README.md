@@ -25,6 +25,9 @@ int main() { $ // <-- put a dollar after every curly brace to determinate cpu co
 - Use `profit::report(ostream)` to log report to any ostream object (like `std::cout`).
 - Optionally, `profit::reset(name)` or `profit::reset_all()` to reset counters.
 
+## API: auto format tool
+- @snail23 was generous enough to create this [auto format tool that write dollars for you](https://github.com/snailsoft/format)
+
 ## Build options
 - Profit is enabled by default. Compile with `-D$=` to disable it.
 - Define PROFIT_USE_OPENMP to use OpenMP timers (instead of <chrono>)
