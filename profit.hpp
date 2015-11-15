@@ -16,7 +16,8 @@ int main() { $ // <-- put a dollar after every curly brace to determinate cpu co
 #ifndef $
 #pragma once
 
-#define PROFIT_VERSION "1.0.0" /* (2015/08/02) Macro renamed
+#define PROFIT_VERSION "1.0.1" /* (2015/11/15) Fix win32 `max()` macro conflict
+#define PROFIT_VERSION "1.0.0" // (2015/08/02) Macro renamed
 #define PROFIT_VERSION "0.0.0" // (2015/03/13) Initial commit */
 
 #include <cassert>
@@ -71,7 +72,7 @@ class profit
             size_t width(std::string const& s) { return s.length(); }
 
             size_t combine_width(size_t one_width, size_t another_width) {
-                return std::max(one_width, another_width);
+                return (std::max)(one_width, another_width);
             }
 
         private:

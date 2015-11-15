@@ -1,9 +1,9 @@
 # Profit :moneybag: <a href="https://travis-ci.org/r-lyeh/profit"><img src="https://api.travis-ci.org/r-lyeh/profit.svg?branch=master" align="right" /></a>
 
-- Profit is a generic CPU profiler (C++11)
-- Profit is cross-platform. No external dependencies.
-- Profit is tiny, self-contained, header-only.
-- Profit is zlib/libpng licensed.
+- [x] Generic CPU profiler (C++11)
+- [x] Cross-platform. No external dependencies.
+- [x] Tiny, self-contained, header-only.
+- [x] ZLIB/libPNG licensed.
 
 ## Quick tutorial (tl;dr)
 ```c++
@@ -89,10 +89,9 @@ int main() {{ $
 ```
 
 ## Changelog
-- v1.0.0 (2015/08/02)
-  - Macro renamed
-- v0.0.0 (2015/03/13)
-  - Initial commit
+- v1.0.1 (2015/11/15): Fix win32 `max()` macro conflict
+- v1.0.0 (2015/08/02): Macro renamed
+- v0.0.0 (2015/03/13): Initial commit
 
 ## Licenses
 - [Profit](https://github.com/r-lyeh/profit), zlib/libpng licensed.
